@@ -6,9 +6,12 @@ import re
 import os
 import subprocess
 
+from django.conf import settings
+from django.contrib.staticfiles.storage import AppStaticStorage
+
 
 logger = logging.getLogger("less")
-
+from pprint import pformat
 
 STATIC_URL = getattr(settings, "STATIC_URL", getattr(settings, "MEDIA_URL"))
 
@@ -39,7 +42,19 @@ def compile_less(input, output, less_path):
     if not os.path.exists(less_root):
         os.makedirs(less_root)
 
-    args = [LESS_EXECUTABLE, input]
+    # build our include paths from installed app static dirs
+    apps = settings.INSTALLED_APPS
+    inc_paths = []
+    for app in apps:
+        app_storage = AppStaticStorage(app)
+        if os.path.isdir(app_storage.location):
+            inc_paths.append(os.path.relpath(app_storage.location))
+
+    logger.debug("curdir: "+pformat(os.getcwd()))
+    logger.debug("LESS include paths: "+pformat(inc_paths))
+
+    args = [LESS_EXECUTABLE, "--include-path=.:"+":".join(inc_paths), input]
+    logger.debug("LESS args: "+pformat(args))
     popen_kwargs = dict(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
