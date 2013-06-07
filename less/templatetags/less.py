@@ -98,12 +98,10 @@ WATCHED_FILES_BY_PARENT = {}
 LESS_IMPORT_RE = re.compile(r"""@import\s+['"](.+?\.less)['"]\s*;""")
 
 def check_file_and_dependencies(path):
-    logger.info("check_file_and_dependencies: "+path)
+    #logger.info("check_file_and_dependencies: "+path)
     full_path, file_name, output_dir = less_paths(path)
     mtime = os.path.getmtime(full_path)
     changed = False
-
-    logger.info("check_file_and_dependencies: 1")
 
     if path not in WATCHED_FILES:
         WATCHED_FILES[path] = [None, set()]
@@ -112,19 +110,17 @@ def check_file_and_dependencies(path):
         changed = True
         WATCHED_FILES[path][0] = mtime
 
-        logger.info("check_file_and_dependencies: 2")
-
         # update dependencies
         WATCHED_FILES_BY_PARENT[path] = set()
 
         for line in open(full_path):
             for imported in LESS_IMPORT_RE.findall(line):
                 # test if the include is relative to current file or relative to static root
-                logger.debug("found imported file: "+imported)
+                #logger.debug("found imported file: "+imported)
                 try_local = True
                 if LESS_INCLUDE_ACROSS_APPS:
                     # use staticfiles finder to locate file
-                    logger.debug("locating imported file "+imported+" using staticfiles finder")
+                    #logger.debug("locating imported file "+imported+" using staticfiles finder")
                     result = finders.find(imported, all=False)
                     if result:
                         imported = os.path.relpath(result, STATIC_ROOT)
@@ -132,9 +128,10 @@ def check_file_and_dependencies(path):
 
                 if try_local:
                     # treat as path relative to current file
-                    logger.debug("locating imported file "+imported+" using relative path")
+                    #logger.debug("locating imported file "+imported+" using relative path")
                     imported = os.path.relpath(os.path.join(os.path.dirname(full_path), imported), STATIC_ROOT)
-                    logger.debug("resolved import as "+imported)
+
+                #logger.debug("resolved import as "+imported)
 
                 if imported not in WATCHED_FILES:
                     WATCHED_FILES[imported] = [None, set([path])]
