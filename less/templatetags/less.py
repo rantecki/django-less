@@ -13,6 +13,7 @@ import subprocess
 import os
 import sys
 import re
+from django.core.exceptions import SuspiciousOperation
 
 from django.contrib.staticfiles import finders
 
@@ -99,7 +100,12 @@ LESS_IMPORT_RE = re.compile(r"""@import\s+['"](.+?\.less)['"]\s*;""")
 
 def check_file_and_dependencies(path):
     #logger.info("check_file_and_dependencies: "+path)
-    full_path, file_name, output_dir = less_paths(path)
+    try:
+        full_path, file_name, output_dir = less_paths(path)
+    except SuspiciousOperation, e:
+        logger.debug(e)
+        raise ValueError("File not found or not accessible: "+path)
+
     mtime = os.path.getmtime(full_path)
     changed = False
 
