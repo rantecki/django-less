@@ -78,8 +78,12 @@ def do_inlineless(parser, token):
 
 def less_paths(path):
 
-    full_path = os.path.join(STATIC_ROOT, path)
+    if os.path.isabs(path):
+        full_path = path
+    else:
+        full_path = os.path.join(STATIC_ROOT, path)
 
+    # logger.info("less_paths: path="+path+", full_path="+full_path)
     if settings.DEBUG and not os.path.exists(full_path):
         # while developing it is more confortable
         # searching for the less files rather then
@@ -99,7 +103,6 @@ WATCHED_FILES_BY_PARENT = {}
 LESS_IMPORT_RE = re.compile(r"""@import\s+['"](.+?\.less)['"]\s*;""")
 
 def check_file_and_dependencies(path):
-    #logger.info("check_file_and_dependencies: "+path)
     try:
         full_path, file_name, output_dir = less_paths(path)
     except SuspiciousOperation, e:
@@ -122,22 +125,25 @@ def check_file_and_dependencies(path):
         for line in open(full_path):
             for imported in LESS_IMPORT_RE.findall(line):
                 # test if the include is relative to current file or relative to static root
-                #logger.debug("found imported file: "+imported)
+                # logger.debug("found imported file: "+imported)
                 try_local = True
                 if LESS_INCLUDE_ACROSS_APPS:
                     # use staticfiles finder to locate file
-                    #logger.debug("locating imported file "+imported+" using staticfiles finder")
+                    # logger.debug("locating imported file "+imported+" using staticfiles finder")
                     result = finders.find(imported, all=False)
+                    # logger.debug("static files finder returned "+result)
+                    # logger.debug("STATIC_ROOT="+STATIC_ROOT)
                     if result:
-                        imported = os.path.relpath(result, STATIC_ROOT)
+                        imported = result #os.path.relpath(result, STATIC_ROOT)
                         try_local = False
 
                 if try_local:
                     # treat as path relative to current file
-                    #logger.debug("locating imported file "+imported+" using relative path")
-                    imported = os.path.relpath(os.path.join(os.path.dirname(full_path), imported), STATIC_ROOT)
+                    logger.debug("locating imported file "+imported+" using relative path")
+                    # imported = os.path.relpath(os.path.join(os.path.dirname(full_path), imported), STATIC_ROOT)
+                    imported = os.path.join(os.path.dirname(full_path), imported)
 
-                #logger.debug("resolved import as "+imported)
+                logger.debug("resolved import as "+imported)
 
                 if imported not in WATCHED_FILES:
                     WATCHED_FILES[imported] = [None, set([path])]
